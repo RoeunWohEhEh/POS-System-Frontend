@@ -100,10 +100,11 @@ async function checkPaymentStatus() {
 
   try {
     const res = await paymentService.verify(payment.value.id)
-    const verifiedPayment = res.data.payment
-    const completedOrder = res.data.order
 
-    if (verifiedPayment.status === 'paid') {
+    if (res.data.status === 'PAID') {
+      const verifiedPayment = res.data.payment
+      const completedOrder = res.data.order
+
       stopAutoVerify()
       clearInterval(timer)
       phase.value = 'done'
@@ -113,6 +114,8 @@ async function checkPaymentStatus() {
       setTimeout(() => {
         emit('success', { order: completedOrder, payment: verifiedPayment, change: 0 })
       }, 1500)
+    } else if (res.data.status === 'PENDING') {
+      console.log('Waiting for payment...')
     }
   } catch (err) {
     // If backend returns 422 or error, we just continue polling unless it's a critical error
@@ -126,7 +129,7 @@ async function checkPaymentStatus() {
 function startAutoVerify() {
   autoVerifyTimer.value = setInterval(() => {
     checkPaymentStatus()
-  }, 10000)
+  }, 3000)
 }
 
 function stopAutoVerify() {
