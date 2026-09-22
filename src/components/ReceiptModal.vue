@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { X, Printer, ShoppingCart } from '@lucide/vue'
 
 const props = defineProps({
@@ -8,6 +8,24 @@ const props = defineProps({
   change:  { type: Number, default: 0 },
 })
 const emit = defineEmits(['close', 'new-sale'])
+
+const isOpen = ref(false)
+
+onMounted(() => {
+  requestAnimationFrame(() => {
+    isOpen.value = true
+  })
+})
+
+function closeModal() {
+  isOpen.value = false
+  setTimeout(() => emit('close'), 300)
+}
+
+function handleNewSale() {
+  isOpen.value = false
+  setTimeout(() => emit('new-sale'), 300)
+}
 
 function fmt(n) {
   return parseFloat(n || 0).toFixed(2)
@@ -25,14 +43,14 @@ function printReceipt() {
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal" />
 
         <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
           <!-- Header (hidden on print) -->
           <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 print:hidden">
             <h2 class="text-base font-bold text-gray-900">Receipt</h2>
-            <button @click="emit('close')" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+            <button @click="closeModal" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
               <X class="w-4 h-4" />
             </button>
           </div>
@@ -128,7 +146,7 @@ function printReceipt() {
             </button>
             <button
               id="new-sale-btn"
-              @click="emit('new-sale')"
+              @click="handleNewSale"
               class="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors"
             >
               <ShoppingCart class="w-4 h-4" />

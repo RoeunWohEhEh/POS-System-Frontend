@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { X, DollarSign, Banknote } from '@lucide/vue'
 import { useCartStore } from '@/stores/cart'
 import { useToastStore } from '@/stores/toast'
@@ -14,6 +14,18 @@ const toast = useToastStore()
 const cashGiven = ref('')
 const loading = ref(false)
 const error = ref('')
+const isOpen = ref(false)
+
+onMounted(() => {
+  requestAnimationFrame(() => {
+    isOpen.value = true
+  })
+})
+
+function closeModal() {
+  isOpen.value = false
+  setTimeout(() => emit('close'), 300)
+}
 
 // Change = cashGiven - order.total (shown after order created)
 const cashGivenNum = computed(() => parseFloat(cashGiven.value) || 0)
@@ -48,11 +60,14 @@ async function confirmPayment() {
     const { payment, order: completedOrder } = paymentRes.data
 
     toast.success('Payment successful!')
-    emit('success', {
-      order: completedOrder,
-      payment,
-      change: cashGivenNum.value - parseFloat(order.total),
-    })
+    isOpen.value = false
+    setTimeout(() => {
+      emit('success', {
+        order: completedOrder,
+        payment,
+        change: cashGivenNum.value - parseFloat(order.total),
+      })
+    }, 300)
   } catch (err) {
     const msg = err.response?.data?.message || 'Payment failed. Please try again.'
     error.value = msg
@@ -65,18 +80,18 @@ async function confirmPayment() {
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="emit('close')" />
+      <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal" />
 
         <Transition name="slide-up">
-          <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div v-if="isOpen" class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <!-- Header -->
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div class="flex items-center gap-2">
                 <Banknote class="w-5 h-5 text-emerald-600" />
                 <h2 class="text-base font-bold text-gray-900">Cash Payment</h2>
               </div>
-              <button @click="emit('close')" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+              <button @click="closeModal" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
                 <X class="w-4 h-4" />
               </button>
             </div>
@@ -157,7 +172,7 @@ async function confirmPayment() {
             <!-- Footer -->
             <div class="px-6 pb-6 flex gap-3">
               <button
-                @click="emit('close')"
+                @click="closeModal"
                 class="flex-1 py-2.5 border border-gray-300 text-sm font-semibold text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
               >
                 Cancel

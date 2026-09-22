@@ -13,6 +13,7 @@ const cart = useCartStore()
 const toast = useToastStore()
 
 // State
+const isOpen = ref(false)
 const phase = ref('creating') // creating | waiting | verifying | done
 const error = ref('')
 const payment = ref(null)
@@ -112,7 +113,10 @@ async function checkPaymentStatus() {
       toast.success('KHQR payment verified!')
 
       setTimeout(() => {
-        emit('success', { order: completedOrder, payment: verifiedPayment, change: 0 })
+        isOpen.value = false
+        setTimeout(() => {
+          emit('success', { order: completedOrder, payment: verifiedPayment, change: 0 })
+        }, 300)
       }, 1500)
     } else if (res.data.status === 'PENDING') {
       console.log('Waiting for payment...')
@@ -140,12 +144,18 @@ function stopAutoVerify() {
 }
 
 function closeKHQR() {
+  isOpen.value = false
   stopAutoVerify()
   clearInterval(timer)
-  emit('close')
+  setTimeout(() => emit('close'), 300)
 }
 
-onMounted(createKhqrPayment)
+onMounted(() => {
+  requestAnimationFrame(() => {
+    isOpen.value = true
+  })
+  createKhqrPayment()
+})
 onUnmounted(() => {
   clearInterval(timer)
   stopAutoVerify()
@@ -155,11 +165,11 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="phase === 'waiting' && closeKHQR()" />
 
         <Transition name="slide-up">
-          <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+          <div v-if="isOpen" class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <!-- Header -->
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div class="flex items-center gap-2">
